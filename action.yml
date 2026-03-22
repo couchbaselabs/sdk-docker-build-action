@@ -1,0 +1,124 @@
+name: sdk-docker-build-action
+description: Builds a Docker image and publishes it to ghcr.io
+inputs:
+  sdk:
+    description: "Short SDK name, like 'rust' or 'analytics-python'. Passed to the Dockerfile as SDK build argument, and included in image name."
+    required: true
+  ref:
+    description: "Blank if this the workflow was triggered by push. Otherwise, git ref to build, like 'main', '3.11.x', '3.11.3', 'refs/changes/58/240858/6', 'refs/pull/37/merge', or full commit hash."
+    required: true
+  dockerfile:
+    description: "Path to Dockerfile, like 'fit-performer/Dockerfile'"
+    default: 'Dockerfile'
+outputs:
+  image:
+    description: "Fully qualified image name with human-readable version, like: 'ghcr.io/couchbase/rust-fit-performer:1.0.0'"
+    value: ${{ steps.report.outputs.image }}
+  pinned-image:
+    description: "Canonical image reference, like: 'ghcr.io/couchbase/rust-fit-performer@sha256:<sha>'"
+    value: ${{ steps.report.outputs.pinned-image }}
+runs:
+  using: "composite"
+  steps:
+    - name: Set environment variables
+      shell: bash
+      run: |
+        IMAGE_VERSION=${{ inputs.ref || github.ref_name }}
+        if [[ "$IMAGE_VERSION" =~ ^[0-9a-f]{40}$ ]]; then
+            # It's a full commit hash. Truncate for friendliness, and prefix with 'sha-' for easy pruning.
+            IMAGE_VERSION="sha-${IMAGE_VERSION:0:12}"
+        elif [[ "$IMAGE_VERSION" =~ ^v[0-9] ]]; then
+            # It looks like a version number tag prefixed with 'v'. Strip the 'v' for consistency between SDKs.
+            IMAGE_VERSION="${IMAGE_VERSION#v}"
+        fi
+        echo "IMAGE_VERSION=${IMAGE_VERSION}" >> $GITHUB_ENV
+        echo "REGISTRY=ghcr.io" >> $GITHUB_ENV
+        echo "IMAGE_NAME=${{ github.repository_owner }}/${{ inputs.sdk }}-fit-performer" >> $GITHUB_ENV
+
+    - name: Plan whether to get source from GitHub or Gerrit
+      id: plan
+      shell: bash
+      run: |
+        INPUT_REF="${{ inputs.ref }}"
+        if [[ "$INPUT_REF" =~ ^refs/changes/ ]]; then
+          echo "source=gerrit" >> $GITHUB_OUTPUT
+          echo "GERRIT_SERVER_URL=https://review.couchbase.org" >> $GITHUB_ENV
+          # Gerrit repo name is same as GitHub repo name (without owner)
+          echo "GERRIT_REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+          # TODO: remove this cheat
+          echo "GERRIT_REPO_NAME=couchbase-jvm-clients" >> $GITHUB_ENV
+          echo "image_source_override_for_gerrit=org.opencontainers.image.source=${{ env.GERRIT_SERVER_URL }}/admin/repos/${{ env.GERRIT_REPO_NAME }}" >> $GITHUB_OUTPUT
+          echo "pr_label_for_gerrit=com.couchbase.pr=${{ env.GERRIT_SERVER_URL }}/c/${{ env.GERRIT_REPO_NAME }}/+/${INPUT_REF#${INPUT_REF%/*/*}/}" >> $GITHUB_OUTPUT
+        else
+          echo "source=github" >> $GITHUB_OUTPUT
+          if [[ "$INPUT_REF" == refs/pull/* ]]; then
+             PR_NUMBER=$(echo "$INPUT_REF" | cut -d'/' -f3)
+             echo "pr_label_for_github=com.couchbase.pr=${{ github.server_url }}/${{ github.repository }}/pull/${PR_NUMBER}" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: Check out from GitHub
+      if: steps.plan.outputs.source == 'github'
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref || github.ref }}
+        submodules: recursive
+
+    - name: Check out from Gerrit
+      if: steps.plan.outputs.source == 'gerrit'
+      shell: bash
+      run: |
+        git clone --depth 1 --no-checkout ${{env.GERRIT_SERVER_URL}}/${{ env.GERRIT_REPO_NAME }} .
+        git fetch --depth 1 --recurse-submodules origin ${{ inputs.ref }}
+        git checkout FETCH_HEAD
+        git log --max-count=1
+
+    - name: Get commit hash
+      shell: bash
+      run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+    - name: Log in to the container registry
+      uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Prepare metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ env.IMAGE_VERSION }}
+        flavor: latest=false
+        labels: |
+          com.couchbase.github.actions.run=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          org.opencontainers.image.revision=${{ env.COMMIT_HASH }}
+          ${{ steps.plan.outputs.image_source_override_for_gerrit }}
+          ${{ steps.plan.outputs.pr_label_for_gerrit }}
+          ${{ steps.plan.outputs.pr_label_for_github }}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        build-args: SDK=${{ inputs.sdk }}
+        push: false # TODO set to true!
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Report output values
+      id: report
+      shell: bash
+      run: |
+        echo "image=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
+        echo "pinned-image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+    - name: Print summary
+      shell: bash
+      run: |
+        echo '🔖 `${{ steps.report.outputs.image }}`' >> $GITHUB_STEP_SUMMARY
+        echo '📌 `${{ steps.report.outputs.pinned-image }}`' >> $GITHUB_STEP_SUMMARY

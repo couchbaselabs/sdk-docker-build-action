@@ -71,8 +71,7 @@ runs:
         git checkout FETCH_HEAD
         git log --max-count=1
 
-    # If we didn't do this, for workflow dispatch the label would point to the tip of the branch the workflow ran from.
-    - name: Get commit hash for org.opencontainers.image.revision label
+    - name: Get commit hash
       shell: bash
       run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 

@@ -4,6 +4,9 @@ GitHub Action used by the SDK team to build and publish Docker images for FIT/SI
 
 Builds a Docker image and publishes it to `ghcr.io`.
 
+> [!NOTE]
+> This is not an officially supported Couchbase product.
+
 ## Build FIT performer image
 
 Here's an example workflow using this action:

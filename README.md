@@ -2,14 +2,21 @@
 
 GitHub Action used by the SDK team to build and publish Docker images for FIT/SIT tests.
 
-Builds a Docker image and publishes it to `ghcr.io`.
+Builds a FIT performer Docker image and publishes it to `ghcr.io`.
 
 > [!NOTE]
 > This is not an officially supported Couchbase product.
 
 ## Build FIT performer image
 
-Here's an example workflow using this action:
+Here's an example workflow using this action.
+
+Edit the `branches` section to match your actual branch names.
+Replace `<my-sdk-name>` with your SDK language.
+Edit the `dockerfile` input so it points to your performer Dockerfile.
+
+> [!TIP]
+> The action uses the `sdk` input as the image name prefix. It also passes this value to your Dockerfile via a build argument named `SDK`.
 
 ```yaml
 name: Build FIT performer
@@ -62,7 +69,10 @@ These should be pruned after some time.
 Every time an image is built for a branch, the branch's previous image becomes untagged.
 These untagged images should be pruned after some time.
 
-Here's an example workflow:
+Here's an example workflow.
+
+Change the `SDK` value to match your SDK name.
+Change the schedule so the workflow runs at a randomly selected time of day.
 
 ```yaml
 name: Prune stale images

@@ -4,7 +4,6 @@ Conventions for naming, tagging, and labeling FIT performer Docker images.
 
 > [!TIP]
 > The custom `couchbaselabs/sdk-docker-build-action` GitHub action creates images that follow these conventions.
-If you use this action, you won't need to worry about these details.
 
 
 ## Repository

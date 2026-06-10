@@ -10,7 +10,7 @@ Conventions for naming, tagging, and labeling FIT performer Docker images.
 
 FIT performer images live in the GitHub Container Registry (ghcr.io) for convenient publication and consumption by GHA workflows.
 
-An image should have `internal` visibility (the most permissive allowed by our GitHub policy) so it can be accessed byworkflows in any Couchbase organization on GitHub.
+An image should have `internal` visibility (the most permissive allowed by our GitHub policy) so it can be accessed by workflows in any Couchbase organization on GitHub.
 
 An image should be associated with the SDK's GitHub repository; if this is set up correctly, the image appears in the GitHub UI in the repository's "Packages" section (right sidebar) and also as one of the `couchbase` organization's packages at https://github.com/orgs/couchbase/packages?tab=packages&q=*-fit-performer
 

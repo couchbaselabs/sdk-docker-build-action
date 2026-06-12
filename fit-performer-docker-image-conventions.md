@@ -24,13 +24,13 @@ To distinguish FIT performer images from other kinds of images, the image name s
 
 This table shows how different types of performer images should be tagged:
 
-| Image Type            | Image Tag Format                          | Example Tag                 |
-|:----------------------|:------------------------------------------|:----------------------------|
-| Release               | `major.minor.patch` *(no `v` prefix)*     | `3.12.0`                    |
-| Snapshot              | Name of the branch the SDK was built from | `main`, `master`, `3.10.x`  |
-| On-Demand (Git Hash)  | `sha-` plus first 12 digits of hash       | `sha-a1b2c3d4e5f6`          |
-| On-Demand (GitHub PR) | Full git ref                              | `refs-pull-473-merge`       |
-| On-Demand (Gerrit PR) | Full git ref                              | `refs-changes-58-240858-6`  |
+| Image Type            | Image Tag Format                                                      | Example Tag                |
+|:----------------------|:----------------------------------------------------------------------|:---------------------------|
+| Release               | `major.minor.patch` *(no `v` prefix)*                                 | `3.12.0`                   |
+| Snapshot              | Name of the branch the SDK was built from (rename `master` to `main`) | `main`, `3.10.x`           |
+| On-Demand (Git Hash)  | `sha-` plus first 12 digits of hash                                   | `sha-a1b2c3d4e5f6`         |
+| On-Demand (GitHub PR) | Full git ref                                                          | `refs-pull-473-merge`      |
+| On-Demand (Gerrit PR) | Full git ref                                                          | `refs-changes-58-240858-6` |
 
 > [!NOTE]
 > Invalid characters, like the slashes in git refs, are replace by hyphens (-).

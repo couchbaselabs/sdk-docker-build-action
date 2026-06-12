@@ -30,6 +30,9 @@ runs:
         elif [[ "$IMAGE_VERSION" =~ ^v[0-9] ]]; then
             # It looks like a version number tag prefixed with 'v'. Strip the 'v' for consistency between SDKs.
             IMAGE_VERSION="${IMAGE_VERSION#v}"
+        elif [[ "$IMAGE_VERSION" = "master" ]]; then
+            # Rename "master" to "main" for consistency between SDKs. 
+            IMAGE_VERSION="main"
         fi
         echo "IMAGE_VERSION=${IMAGE_VERSION}" >> $GITHUB_ENV
         echo "REGISTRY=ghcr.io" >> $GITHUB_ENV

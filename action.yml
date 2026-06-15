@@ -45,11 +45,13 @@ runs:
         INPUT_REF="${{ inputs.ref }}"
         if [[ "$INPUT_REF" =~ ^refs/changes/ ]]; then
           echo "source=gerrit" >> $GITHUB_OUTPUT
-          echo "GERRIT_SERVER_URL=https://review.couchbase.org" >> $GITHUB_ENV
+          GERRIT_SERVER_URL=https://review.couchbase.org
           # Assume Gerrit repo name is same as GitHub repo name (without owner)
-          echo "GERRIT_REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
-          echo "image_source_override_for_gerrit=org.opencontainers.image.source=${{ env.GERRIT_SERVER_URL }}/admin/repos/${{ env.GERRIT_REPO_NAME }}" >> $GITHUB_OUTPUT
-          echo "pr_label_for_gerrit=com.couchbase.pr=${{ env.GERRIT_SERVER_URL }}/c/${{ env.GERRIT_REPO_NAME }}/+/${INPUT_REF#${INPUT_REF%/*/*}/}" >> $GITHUB_OUTPUT
+          GERRIT_REPO_NAME=${{ github.event.repository.name }}
+          echo "image_source_override_for_gerrit=org.opencontainers.image.source=${GERRIT_SERVER_URL}/admin/repos/${GERRIT_REPO_NAME}" >> $GITHUB_OUTPUT
+          echo "pr_label_for_gerrit=com.couchbase.pr=${GERRIT_SERVER_URL}/c/${GERRIT_REPO_NAME}/+/${INPUT_REF#${INPUT_REF%/*/*}/}" >> $GITHUB_OUTPUT
+          echo "GERRIT_SERVER_URL=$GERRIT_SERVER_URL" >> $GITHUB_ENV
+          echo "GERRIT_REPO_NAME=$GERRIT_REPO_NAME" >> $GITHUB_ENV
         else
           echo "source=github" >> $GITHUB_OUTPUT
           if [[ "$INPUT_REF" == refs/pull/* ]]; then

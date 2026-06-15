@@ -43,8 +43,23 @@ At a minimum, an image should have the following labels as defined in [The OpenC
 * `org.opencontainers.image.created` -- Timestamp, useful for ordering snapshot perf results.
 * `org.opencontainers.image.revision` -- Full git commit hash the SDK was built from.
 * `org.opencontainers.image.source` --  URL of the SDK GitHub repo. The GitHub Container Registry uses this to associate the image with the repository. Example: `https://github.com/couchbase/couchbase-jvm-clients`
+* `org.opencontainers.image.version` -- Same value as the image tag from the table above, so tools can read the version even if the user passes an image name with a digest instead of a tag. 
 
 If you want to add labels pointing to a pull request or GHA run, please use these label names:
 
 * `com.couchbase.pr` -- URL of the PR the image was built from, if applicable.
 * `com.couchbase.github.actions.run` -- URL of the GitHub Actions run that built the image, if applicable.
+
+
+## Performer logging
+
+When running a performer image, the FIT tooling sets a `LOG_LEVEL` environment variable with one of these values:
+
+* `off`
+* `error`
+* `warn`
+* `info`
+* `debug`
+* `trace`
+
+The performer should use this value to configure its logging framework.

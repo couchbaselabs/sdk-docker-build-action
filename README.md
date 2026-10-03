@@ -57,6 +57,8 @@ jobs:
           sdk: <my-sdk-name> # like 'rust' or 'analytics-python'
           ref: ${{ inputs.ref }}
           dockerfile: path/to/Dockerfile # defaults to `Dockerfile`
+          fetch-depth: 0 # optional; full history and tags, for builds that run `git describe`
+          version-command: path/to/print-version # optional; sets the `com.couchbase.sdk.version` label
         env:
           DOCKER_BUILD_SUMMARY: false # if you don't want the summary
 ```

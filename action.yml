@@ -10,6 +10,12 @@ inputs:
   dockerfile:
     description: "Path to Dockerfile, like 'fit-performer/Dockerfile'"
     default: 'Dockerfile'
+  fetch-depth:
+    description: "Number of commits to fetch. 0 fetches all history and tags, which a build that runs `git describe` needs."
+    default: '1'
+  version-command:
+    description: "Optional shell command, run in the checked-out source, that prints, on one line, the version the SDK reports at runtime. Its output becomes the `com.couchbase.sdk.version` label."
+    default: ''
 outputs:
   image:
     description: "Fully qualified image name with human-readable version, like: 'ghcr.io/couchbase/rust-fit-performer:1.0.0'"
@@ -66,19 +72,41 @@ runs:
       with:
         ref: ${{ inputs.ref || github.ref }}
         submodules: recursive
+        fetch-depth: ${{ inputs.fetch-depth }}
 
     - name: Check out from Gerrit
       if: steps.plan.outputs.source == 'gerrit'
       shell: bash
+      env:
+        FETCH_DEPTH: ${{ inputs.fetch-depth }}
       run: |
-        git clone --depth 1 --no-checkout ${{env.GERRIT_SERVER_URL}}/${{ env.GERRIT_REPO_NAME }} .
-        git fetch --depth 1 --recurse-submodules origin ${{ inputs.ref }}
+        DEPTH_ARGS=()
+        if [[ "$FETCH_DEPTH" != "0" ]]; then
+          DEPTH_ARGS=(--depth "$FETCH_DEPTH")
+        fi
+        git clone "${DEPTH_ARGS[@]}" --no-checkout ${{env.GERRIT_SERVER_URL}}/${{ env.GERRIT_REPO_NAME }} .
+        git fetch "${DEPTH_ARGS[@]}" --recurse-submodules origin ${{ inputs.ref }}
         git checkout FETCH_HEAD
         git log --max-count=1
 
     - name: Get commit hash
       shell: bash
       run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+    - name: Get SDK version
+      id: version
+      if: inputs.version-command != ''
+      shell: bash
+      env:
+        VERSION_COMMAND: ${{ inputs.version-command }}
+      run: |
+        SDK_VERSION=$(bash -euo pipefail -c "$VERSION_COMMAND")
+        if [[ -z "$SDK_VERSION" || "$SDK_VERSION" == *$'\n'* ]]; then
+          echo "::error::version-command must print exactly one line: $VERSION_COMMAND"
+          exit 1
+        fi
+        echo "SDK version: $SDK_VERSION"
+        echo "label=com.couchbase.sdk.version=${SDK_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Log in to the container registry
       uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
@@ -101,6 +129,7 @@ runs:
           ${{ steps.plan.outputs.image_source_override_for_gerrit }}
           ${{ steps.plan.outputs.pr_label_for_gerrit }}
           ${{ steps.plan.outputs.pr_label_for_github }}
+          ${{ steps.version.outputs.label }}
 
     - name: Build and push Docker image
       id: build

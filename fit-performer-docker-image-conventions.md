@@ -50,6 +50,10 @@ If you want to add labels pointing to a pull request or GHA run, please use thes
 * `com.couchbase.pr` -- URL of the PR the image was built from, if applicable.
 * `com.couchbase.github.actions.run` -- URL of the GitHub Actions run that built the image, if applicable.
 
+If the SDK reports a version string finer than the image tag, put it in this label:
+
+* `com.couchbase.sdk.version` -- Version the SDK reports at runtime, like `1.4.0+153.1.5994683fb` for a snapshot 153 commits after the `1.4.0` tag. The action sets it from the output of the `version-command` input.
+
 
 ## Performer logging
 
